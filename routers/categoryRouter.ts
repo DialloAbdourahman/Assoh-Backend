@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express from 'express';
 const router = express.Router();
 
 // IMPORTING ALL THE CONTROLLERS.
@@ -9,6 +9,7 @@ const {
   updateCategory,
   seeCategory,
   uploadCategoryImage,
+  deleteCategoryImage,
 } = require('../controllers/categoryController');
 
 // Multer
@@ -36,6 +37,7 @@ router.get('/:id', seeCategory);
 router.patch('/:id', auth, updateCategory);
 
 // DELETE.
+router.delete('/deleteImage/:id', auth, deleteCategoryImage);
 router.delete('/:id', auth, deleteCategory);
 
 module.exports = router;

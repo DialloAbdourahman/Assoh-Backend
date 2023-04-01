@@ -1,10 +1,18 @@
 import { Request, Response } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
+import sharp from 'sharp';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 const prisma: PrismaClient<
   Prisma.PrismaClientOptions,
   never,
   Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
 > = require('../utiles/prismaClient');
+import { s3 } from '../utiles/s3client';
 
 const createCategory = async (req: Request, res: Response) => {
   try {
@@ -41,8 +49,24 @@ const deleteCategory = async (req: Request, res: Response) => {
     // Get the id from the request params object
     const { id } = req.params;
 
-    // Delete the category from the database.
-    const category = await prisma.category.delete({
+    // Get the category to be deleted from the database.
+    const category = await prisma.category.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    // Delete image from aws if there is any.
+    if (category?.imageUrl !== null) {
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: `${category?.imageUrl}`,
+      });
+      await s3.send(command);
+    }
+
+    // Delete the category from the database
+    await prisma.category.delete({
       where: {
         id,
       },
@@ -62,8 +86,27 @@ const seeCategories = async (req: Request, res: Response) => {
     // Get all the categories from the database.
     const categories = await prisma.category.findMany({});
 
+    // Generate image Urls
+    const categoriesWithImagesUrl = await Promise.all(
+      categories.map(async (category) => {
+        //Generate a url for the image
+        if (category.imageUrl !== null) {
+          const getUrlCommand = new GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: `${category.imageUrl}`,
+          });
+          const url = await getSignedUrl(s3, getUrlCommand, {
+            expiresIn: 3600,
+          });
+          category.imageUrl = url;
+        }
+        return category;
+      })
+    );
+    console.log(categoriesWithImagesUrl);
+
     // Return a positive response with all the categories and products releted to them.
-    res.status(200).json(categories);
+    res.status(200).json(categoriesWithImagesUrl);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -145,22 +188,6 @@ const updateCategory = async (req: Request, res: Response) => {
   }
 };
 
-// upload
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-} from '@aws-sdk/client-s3';
-import sharp from 'sharp';
-const s3 = new S3Client({
-  credentials: {
-    accessKeyId: String(process.env.ACCESS_KEY),
-    secretAccessKey: String(process.env.SECRET_ACCESS_KEY),
-  },
-  region: String(process.env.BUCKET_REGION),
-});
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
 const uploadCategoryImage = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
@@ -176,8 +203,8 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
 
     // Generate a random image name.
     let randomImageName;
-    if (category?.image) {
-      randomImageName = category.image;
+    if (category?.imageUrl) {
+      randomImageName = category.imageUrl;
     } else {
       randomImageName = Date.now() + '-' + Math.round(Math.random() * 1e9);
     }
@@ -209,7 +236,7 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
         id,
       },
       data: {
-        image: randomImageName,
+        imageUrl: randomImageName,
       },
     });
 
@@ -227,6 +254,43 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
   }
 };
 
+const deleteCategoryImage = async (req: Request, res: Response) => {
+  try {
+    // Check it is an admin.
+    if (req.user.roleName !== 'admin') {
+      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+    }
+
+    // Getting the category id
+    const { id } = req.params;
+
+    // Get the category
+    const category = await prisma.category.findUnique({ where: { id } });
+
+    // Delete image from aws s3
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: `${category?.imageUrl}`,
+    });
+    await s3.send(command);
+
+    // Update the database.
+    await prisma.category.update({
+      where: { id },
+      data: {
+        imageUrl: null,
+      },
+    });
+
+    // Return positive response.
+    return res
+      .status(200)
+      .send({ message: 'Category image has been deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createCategory,
   deleteCategory,
@@ -234,4 +298,5 @@ module.exports = {
   updateCategory,
   seeCategory,
   uploadCategoryImage,
+  deleteCategoryImage,
 };

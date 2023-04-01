@@ -48,7 +48,7 @@ model Category {
   id          String    @id @default(uuid())
   name        String    @unique
   description String?
-  image       String?
+  imageUrl    String?
   products    Product[]
 }
 
@@ -119,5 +119,4 @@ model Message {
   createdAt      DateTime     @default(now())
 }
 
-// work on the order route. PS (the create order route needs to take an array of products like and array of the cart page. prodId,amount)
-// user cannot order until they've entered all their location information.
+// Add search products opionally with category and remove see category with list of products.
