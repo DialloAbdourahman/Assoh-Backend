@@ -8,13 +8,25 @@ const {
   seeCategories,
   updateCategory,
   seeCategory,
+  uploadCategoryImage,
 } = require('../controllers/categoryController');
+
+// Multer
+import multer from 'multer';
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // ADDITIONAL IMPORTS.
 const auth = require('../middlewares/auth');
 
 // CREATE.
 router.post('/', auth, createCategory);
+router.post(
+  '/uploadImage/:id',
+  auth,
+  upload.single('image'),
+  uploadCategoryImage
+);
 
 // READ.
 router.get('/', seeCategories);

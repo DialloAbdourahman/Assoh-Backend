@@ -145,10 +145,93 @@ const updateCategory = async (req: Request, res: Response) => {
   }
 };
 
+// upload
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import sharp from 'sharp';
+const s3 = new S3Client({
+  credentials: {
+    accessKeyId: String(process.env.ACCESS_KEY),
+    secretAccessKey: String(process.env.SECRET_ACCESS_KEY),
+  },
+  region: String(process.env.BUCKET_REGION),
+});
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+const uploadCategoryImage = async (req: Request, res: Response) => {
+  try {
+    // Check it is an admin.
+    if (req.user.roleName !== 'admin') {
+      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+    }
+
+    // Getting the category id
+    const { id } = req.params;
+
+    // Get the category
+    const category = await prisma.category.findUnique({ where: { id } });
+
+    // Generate a random image name.
+    let randomImageName;
+    if (category?.image) {
+      randomImageName = category.image;
+    } else {
+      randomImageName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    }
+
+    // Resize image
+    const buffer = await sharp(req.file?.buffer)
+      .resize({
+        width: 250,
+        height: 250,
+        fit: 'contain',
+      })
+      .png()
+      .toBuffer();
+
+    // Create the command.
+    const command = new PutObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: randomImageName,
+      Body: buffer,
+      ContentType: req.file?.mimetype,
+    });
+
+    // Get the image that has been uploaded.
+    await s3.send(command);
+
+    // Store data in database.
+    const updatedCategory = await prisma.category.update({
+      where: {
+        id,
+      },
+      data: {
+        image: randomImageName,
+      },
+    });
+
+    // Generate a url for the image
+    const getUrlCommand = new GetObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: randomImageName,
+    });
+    const url = await getSignedUrl(s3, getUrlCommand, { expiresIn: 3600 });
+
+    // Return a positive response.
+    res.status(200).json({ updatedCategory, url });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createCategory,
   deleteCategory,
   seeCategories,
   updateCategory,
   seeCategory,
+  uploadCategoryImage,
 };
