@@ -548,10 +548,28 @@ test('should not allow a non admin to use this route', async () => {
 });
 
 test('should not allow an unauthorized user to use this route', async () => {
-  // Assert that a 400 status is return after turing a buyer into a seller.
+  // Assert that a 400 status is return after turning a buyer into a seller.
   const response = await request(app)
     .post(`/api/users/adminTransform/${userTwo.id}`)
     .query({ role: 'buyer' })
     .send();
+  expect(response.status).toBe(401);
+});
+
+test("should get user's profile information if logged in", async () => {
+  // Assert that a 200 status code is returned after getting a user's profile
+  const response = await request(app)
+    .get('/api/users/profile')
+    .set('Authorization', `Bearer ${userOne.tokens[0]}`)
+    .send();
+  expect(response.status).toBe(200);
+
+  // Assert that the data returned maches
+  expect(response.body.id).toBe(userOne.id);
+});
+
+test("should not return a user's profile if not logged in", async () => {
+  // Assert that a 401 status code
+  const response = await request(app).get('/api/users/profile').send();
   expect(response.status).toBe(401);
 });

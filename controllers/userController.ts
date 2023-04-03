@@ -642,6 +642,32 @@ const searchSeller = async (req: Request, res: Response) => {
   }
 };
 
+const getProfile = async (req: Request, res: Response) => {
+  try {
+    // Getting the user from the req.user
+    let user = req.user;
+
+    // Sanitizing data
+    user.password = undefined;
+    user.tokens = undefined;
+
+    // Check if user has an avatar to generate a url for it.
+    if (user.avatarUrl) {
+      const getUrlCommand = new GetObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: user.avatarUrl,
+      });
+      const url = await getSignedUrl(s3, getUrlCommand, { expiresIn: 3600 });
+      user.avatarUrl = `${user.avatarUrl} ${url}`;
+    }
+
+    // Return a positive response containing the data.
+    res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createUser,
   login,
@@ -656,4 +682,5 @@ module.exports = {
   adminTransform,
   searchSeller,
   sellerUpdate,
+  getProfile,
 };

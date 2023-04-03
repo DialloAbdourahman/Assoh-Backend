@@ -16,6 +16,7 @@ const {
   adminTransform,
   searchSeller,
   sellerUpdate,
+  getProfile,
 } = require('../controllers/userController');
 
 // Multer
@@ -43,6 +44,7 @@ router.post(
 
 // READ.
 router.get('/sellers', searchSellers);
+router.get('/profile', auth, getProfile);
 router.get('/:id', searchSeller);
 router.get('/', auth, adminSearchUsers);
 
