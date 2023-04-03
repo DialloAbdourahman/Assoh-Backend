@@ -13,12 +13,14 @@ const prisma: PrismaClient<
   Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
 > = require('../utiles/prismaClient');
 import { s3 } from '../utiles/s3client';
+const { generateRandomImageName } = require('../utiles/utiles');
 
 const createCategory = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
     if (req.user.roleName !== 'admin') {
-      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      return;
     }
 
     // Get all the properties we need from the body.
@@ -43,7 +45,8 @@ const deleteCategory = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
     if (req.user.roleName !== 'admin') {
-      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      return;
     }
 
     // Get the id from the request params object
@@ -103,44 +106,9 @@ const seeCategories = async (req: Request, res: Response) => {
         return category;
       })
     );
-    console.log(categoriesWithImagesUrl);
 
     // Return a positive response with all the categories and products releted to them.
     res.status(200).json(categoriesWithImagesUrl);
-  } catch (error) {
-    return res.status(500).json({ message: 'Something went wrong.', error });
-  }
-};
-
-const seeCategory = async (req: Request, res: Response) => {
-  try {
-    // Get the category id from the request parameters
-    const { id } = req.params;
-
-    // Get all the category from the database.
-    const categories = await prisma.category.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        products: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
-            quantity: true,
-            createdAt: true,
-            imagesUrl: true,
-            colors: true,
-            sizes: true,
-          },
-        },
-      },
-    });
-
-    // Return a positive response with all the categories and products releted to them.
-    res.status(200).json(categories);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -150,7 +118,8 @@ const updateCategory = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
     if (req.user.roleName !== 'admin') {
-      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      return;
     }
 
     // Get category id from req.params
@@ -192,7 +161,8 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
     if (req.user.roleName !== 'admin') {
-      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      return;
     }
 
     // Getting the category id
@@ -206,7 +176,7 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
     if (category?.imageUrl) {
       randomImageName = category.imageUrl;
     } else {
-      randomImageName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      randomImageName = generateRandomImageName();
     }
 
     // Resize image
@@ -258,7 +228,8 @@ const deleteCategoryImage = async (req: Request, res: Response) => {
   try {
     // Check it is an admin.
     if (req.user.roleName !== 'admin') {
-      return res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      res.status(400).send({ message: 'Sorry, you are not an admin.' });
+      return;
     }
 
     // Getting the category id
@@ -296,7 +267,6 @@ module.exports = {
   deleteCategory,
   seeCategories,
   updateCategory,
-  seeCategory,
   uploadCategoryImage,
   deleteCategoryImage,
 };

@@ -119,4 +119,6 @@ model Message {
   createdAt      DateTime     @default(now())
 }
 
-// Add search products opionally with category and remove see category with list of products.
+// work on upload an avatar, delete and avatar and admin delete a user which interns deletes the user's avatar.
+
+// work on a user profile route which will display all the neccessary information related to a user we wanna update for example or maybe use this route to get a product image url every time we need to.

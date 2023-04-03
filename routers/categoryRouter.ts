@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 const router = express.Router();
 
 // IMPORTING ALL THE CONTROLLERS.
@@ -7,7 +7,6 @@ const {
   deleteCategory,
   seeCategories,
   updateCategory,
-  seeCategory,
   uploadCategoryImage,
   deleteCategoryImage,
 } = require('../controllers/categoryController');
@@ -26,12 +25,14 @@ router.post(
   '/uploadImage/:id',
   auth,
   upload.single('image'),
-  uploadCategoryImage
+  uploadCategoryImage,
+  (error: any, req: Request, res: Response, next: NextFunction) => {
+    res.status(400).json({ message: error.message });
+  }
 );
 
 // READ.
 router.get('/', seeCategories);
-router.get('/:id', seeCategory);
 
 // UPDATE.
 router.patch('/:id', auth, updateCategory);

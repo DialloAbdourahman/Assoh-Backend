@@ -3,6 +3,14 @@ const path = require('path');
 import { Request, Response } from 'express';
 const validator = require('validator');
 const bcrypt = require('bcrypt');
+import sharp from 'sharp';
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+const { s3 } = require('../utiles/s3client');
 import { Prisma, PrismaClient } from '@prisma/client';
 const prisma: PrismaClient<
   Prisma.PrismaClientOptions,
@@ -10,6 +18,7 @@ const prisma: PrismaClient<
   Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
 > = require('../utiles/prismaClient');
 const generateAuthToken = require('../utiles/generateAuthToken');
+const { generateRandomImageName } = require('../utiles/utiles');
 
 const createUser = async (req: Request, res: Response) => {
   try {
@@ -147,29 +156,56 @@ const logout = async (req: Request, res: Response) => {
 
 const avatarUpload = async (req: Request, res: Response) => {
   try {
-    // Check if the image has been saved.
-    if (!req.file) {
-      return res.status(500).json({ message: 'Sorry image was not saved.' });
+    // Generate a random avatar name.
+    let randomImageName;
+    if (req.user.avatarUrl) {
+      randomImageName = req.user.avatarUrl;
+    } else {
+      randomImageName = generateRandomImageName();
     }
 
-    // If the user already uploaded an avatar we delete it first
-    if (req.user.avatarUrl !== null) {
-      await fs.unlinkSync(path.join(__dirname, '../', req.user.avatarUrl));
-    }
+    // Resize image
+    const buffer = await sharp(req.file?.buffer)
+      .resize({
+        width: 250,
+        height: 250,
+        fit: 'contain',
+      })
+      .png()
+      .toBuffer();
 
-    // Update the avatar url of the user.
-    await prisma.user.update({
+    // Create the command.
+    const command = new PutObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: randomImageName,
+      Body: buffer,
+      ContentType: req.file?.mimetype,
+    });
+
+    // Get the image that has been uploaded.
+    await s3.send(command);
+
+    // Update the data in the database.
+    const updatedUser = await prisma.user.update({
       where: {
         id: req.user.id,
       },
       data: {
-        avatarUrl: req.file?.path,
+        avatarUrl: randomImageName,
       },
     });
 
+    // Generate a url for the image
+    const getUrlCommand = new GetObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: randomImageName,
+    });
+    const url = await getSignedUrl(s3, getUrlCommand, { expiresIn: 3600 });
+
     // Send back a successful response with the image url response.
     res.status(200).json({
-      url: req.file?.path,
+      updatedUser,
+      url,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
@@ -180,7 +216,12 @@ const deleteAvatar = async (req: Request, res: Response) => {
   try {
     // If the user already uploaded an avatar.
     if (req.user.avatarUrl !== null) {
-      await fs.unlinkSync(path.join(__dirname, '../', req.user.avatarUrl));
+      // Delete image from aws s3
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: `${req.user.avatarUrl}`,
+      });
+      await s3.send(command);
     } else {
       return res
         .status(400)
@@ -210,11 +251,16 @@ const deleteUser = async (req: Request, res: Response) => {
   try {
     // If user has an avatar we delete it first.
     if (req.user.avatarUrl !== null) {
-      await fs.unlinkSync(path.join(__dirname, '../', req.user.avatarUrl));
+      // Delete image from aws s3
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: `${req.user.avatarUrl}`,
+      });
+      await s3.send(command);
     }
 
     // Delete the user from the database.
-    const user = await prisma.user.delete({
+    await prisma.user.delete({
       where: {
         id: req.user.id,
       },
@@ -478,7 +524,12 @@ const adminDelete = async (req: Request, res: Response) => {
 
     // If user has an avatar we delete it.
     if (user.avatarUrl !== null) {
-      await fs.unlinkSync(path.join(__dirname, '../', user.avatarUrl));
+      // Delete image from aws s3
+      const command = new DeleteObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: `${user.avatarUrl}`,
+      });
+      await s3.send(command);
     }
 
     // Send back a positive response.

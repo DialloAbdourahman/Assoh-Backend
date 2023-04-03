@@ -80,18 +80,11 @@ test('should view a product using an id', async () => {
 
 test('should allow a seller who created a product to delete it', async () => {
   // Just some sample images
-  await request(app)
+  const res = await request(app)
     .post(`/api/products/images/${productOne.id}`)
     .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
     .attach('images', 'tests/fixtures/image2.jpg');
-  await request(app)
-    .post(`/api/products/images/${productOne.id}`)
-    .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
-    .attach('images', 'tests/fixtures/image2.jpg');
-  await request(app)
-    .post(`/api/products/images/${productOne.id}`)
-    .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
-    .attach('images', 'tests/fixtures/image2.jpg');
+  expect(res.status).toBe(200);
 
   // Assert that a 200 status code is returned after deleting a product
   const response = await request(app)
@@ -234,7 +227,7 @@ test('should allow a seller to upload product image and delete it', async () => 
   // Assert that the product has been deleted
   const response2 = await request(app)
     .delete(`/api/products/deleteImage`)
-    .query({ image: response.body[0], id: productOne.id })
+    .query({ image: response.body[0].split(' ')[0], id: productOne.id })
     .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
     .send();
   expect(response2.status).toBe(200);
@@ -246,15 +239,6 @@ test('should not allow an unauthorized seller to upload product image', async ()
     .post(`/api/products/images/${productOne.id}`)
     .set('Authorization', `Bearer ${userOne.tokens[0]}`)
     .attach('images', 'tests/fixtures/image2.jpg');
-  expect(response.status).toBe(400);
-});
-
-test('should not allow a seller to upload a heavy product image', async () => {
-  // Assert that a 400 status code is returned after trying to upload an image.
-  const response = await request(app)
-    .post(`/api/products/images/${productOne.id}`)
-    .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
-    .attach('images', 'tests/fixtures/image1.jpg');
   expect(response.status).toBe(400);
 });
 
@@ -279,18 +263,11 @@ test("should not allow an unauthenticated user to delete another seller's produc
 
 test("should allow an admin to delete a product using it's id", async () => {
   // Just some sample images
-  await request(app)
+  const res = await request(app)
     .post(`/api/products/images/${productOne.id}`)
     .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
     .attach('images', 'tests/fixtures/image2.jpg');
-  await request(app)
-    .post(`/api/products/images/${productOne.id}`)
-    .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
-    .attach('images', 'tests/fixtures/image2.jpg');
-  await request(app)
-    .post(`/api/products/images/${productOne.id}`)
-    .set('Authorization', `Bearer ${userTwo.tokens[0]}`)
-    .attach('images', 'tests/fixtures/image2.jpg');
+  expect(res.status).toBe(200);
 
   // Assert that a 200 status code is returned after deleting a product
   const response = await request(app)

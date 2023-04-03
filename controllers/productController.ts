@@ -2,11 +2,20 @@ const fs = require('fs');
 const path = require('path');
 import { Request, Response } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
+import sharp from 'sharp';
 const prisma: PrismaClient<
   Prisma.PrismaClientOptions,
   never,
   Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
 > = require('../utiles/prismaClient');
+const { generateRandomImageName } = require('../utiles/utiles');
+const { s3 } = require('../utiles/s3client');
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const createProduct = async (req: Request, res: Response) => {
   try {
@@ -97,9 +106,16 @@ const deleteProduct = async (req: Request, res: Response) => {
 
     // Delete images from file system if there is.
     if (deletedProduct.imagesUrl.length > 0) {
-      deletedProduct.imagesUrl.map(async (image) => {
-        await fs.unlinkSync(path.join(__dirname, '../', image));
-      });
+      await Promise.all(
+        deletedProduct.imagesUrl.map(async (image) => {
+          // Delete image from aws s3
+          const command = new DeleteObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: `${image}`,
+          });
+          await s3.send(command);
+        })
+      );
     }
 
     // Send back positive response.
@@ -130,9 +146,27 @@ const seeProduct = async (req: Request, res: Response) => {
       },
     });
 
+    // Generate product image urls
+    const urls: String[] | any = product?.imagesUrl;
+    const productImageUrls = await Promise.all(
+      urls.map(async (image: any) => {
+        //Generate a url for the image
+        const getUrlCommand = new GetObjectCommand({
+          Bucket: process.env.BUCKET_NAME,
+          Key: `${image}`,
+        });
+        const url = await getSignedUrl(s3, getUrlCommand, {
+          expiresIn: 3600,
+        });
+
+        return `${image} ${url}`;
+      })
+    );
+
     // Product with filtered data.
     const filteredProduct = {
       ...product,
+      imagesUrl: productImageUrls,
       seller: {
         ...product?.seller,
         userId: undefined,
@@ -157,28 +191,71 @@ const seeAllProducts = async (req: Request, res: Response) => {
     // Get the properties from the request query. We must provide them in the frontend.
     let name: string = String(req.query.name);
     let page: number = Number(req.query.page);
+    let categoryId: string = String(req.query.categoryId);
 
     // Configure the pages. Here, the first page will be 1.
     const itemPerPage = 10;
     page = page - 1;
 
-    // Get the products from the database.
-    const products = await prisma.product.findMany({
-      take: itemPerPage,
-      skip: itemPerPage * page,
-      where: {
-        name: {
-          contains: name,
-          mode: 'insensitive',
+    // Get the products from the database given the category or not.
+    let products;
+    if (req.query.categoryId) {
+      products = await prisma.product.findMany({
+        take: itemPerPage,
+        skip: itemPerPage * page,
+        where: {
+          name: {
+            contains: name,
+            mode: 'insensitive',
+          },
+          categoryId,
         },
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    } else {
+      products = await prisma.product.findMany({
+        take: itemPerPage,
+        skip: itemPerPage * page,
+        where: {
+          name: {
+            contains: name,
+            mode: 'insensitive',
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    }
+
+    // Generate the images urls
+    const productsWithImagesUrls = await Promise.all(
+      products.map(async (product) => {
+        const urls: String[] | any = product?.imagesUrl;
+        Promise.all(
+          (product.imagesUrl = await Promise.all(
+            urls.map(async (image: any) => {
+              //Generate a url for the image
+              const getUrlCommand = new GetObjectCommand({
+                Bucket: process.env.BUCKET_NAME,
+                Key: `${image}`,
+              });
+              const url = await getSignedUrl(s3, getUrlCommand, {
+                expiresIn: 3600,
+              });
+
+              return `${image} ${url}`;
+            })
+          ))
+        );
+        return product;
+      })
+    );
 
     // Send back a posite response with all the products.
-    res.status(200).json(products);
+    res.status(200).json(productsWithImagesUrls);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -193,29 +270,71 @@ const seeAllMyProducts = async (req: Request, res: Response) => {
     // Get the properties from the request query. We must provide them in the frontend.
     let name: string = String(req.query.name);
     let page: number = Number(req.query.page);
+    let categoryId: string = String(req.query.categoryId);
 
     // Configure the pages. Here, the first page will be 1.
     const itemPerPage = 10;
     page = page - 1;
 
-    // Get the products from the database.
-    const products = await prisma.product.findMany({
-      take: itemPerPage,
-      skip: itemPerPage * page,
-      where: {
-        name: {
-          contains: name,
-          mode: 'insensitive',
+    // Get the products from the database given the category or not.
+    let products;
+    if (req.query.categoryId) {
+      products = await prisma.product.findMany({
+        take: itemPerPage,
+        skip: itemPerPage * page,
+        where: {
+          name: {
+            contains: name,
+            mode: 'insensitive',
+          },
+          categoryId,
         },
-        sellerId: req.user.id,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    } else {
+      products = await prisma.product.findMany({
+        take: itemPerPage,
+        skip: itemPerPage * page,
+        where: {
+          name: {
+            contains: name,
+            mode: 'insensitive',
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+    }
+
+    // Generate the images urls
+    const productsWithImagesUrls = await Promise.all(
+      products.map(async (product) => {
+        const urls: String[] | any = product?.imagesUrl;
+        Promise.all(
+          (product.imagesUrl = await Promise.all(
+            urls.map(async (image: any) => {
+              //Generate a url for the image
+              const getUrlCommand = new GetObjectCommand({
+                Bucket: process.env.BUCKET_NAME,
+                Key: `${image}`,
+              });
+              const url = await getSignedUrl(s3, getUrlCommand, {
+                expiresIn: 3600,
+              });
+
+              return `${image} ${url}`;
+            })
+          ))
+        );
+        return product;
+      })
+    );
 
     // Send back a posite response with all the products.
-    res.status(200).json(products);
+    res.status(200).json(productsWithImagesUrls);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -284,22 +403,17 @@ const updateProduct = async (req: Request, res: Response) => {
 
 const uploadImages = async (req: Request, res: Response) => {
   try {
+    // We first check if you are a seller.
+    if (req.user.roleName !== 'seller') {
+      res.status(400).json({ message: 'Sorry, you are not a seller' });
+      return;
+    }
+
     // Get the id of the product.
     const { id } = req.params;
 
     // Create an array of images path.
     const images: any = req.files;
-    const imagesPath = images.map((item: any) => {
-      return item.path;
-    });
-
-    // We first check if you are a seller.
-    if (req.user.roleName !== 'seller') {
-      imagesPath.forEach(async (image: any) => {
-        await fs.unlinkSync(path.join(__dirname, '../', image));
-      });
-      return res.status(400).json({ message: 'Sorry, you are not a seller' });
-    }
 
     // Get the soon to be updated product.
     const soonToBeUpdatedProduct = await prisma.product.findFirst({
@@ -308,28 +422,56 @@ const uploadImages = async (req: Request, res: Response) => {
         sellerId: req.user.id,
       },
     });
-
-    // Since multer is a middleware (that comes after the auth middleware), it will first upload the images after if has successfully been authorized by the auth middleware even if the user is not the one who created the product. Fortunately, it will not reach the database to update the imagesUrl record but we will need to delete those images immediately.
     if (!soonToBeUpdatedProduct) {
-      imagesPath.forEach(async (image: any) => {
-        await fs.unlinkSync(path.join(__dirname, '../', image));
-      });
       return res
         .status(400)
         .json({ message: 'You are not allowed to update this product.' });
     }
 
-    // Should not allow the seller to upload more than 5 images, and if he does we delete it. Don't forget that multer would've uploaded the images before checking, this that is why we have to do this.
+    // Should not allow the seller to upload more than 5 images.
     const prevProductImages = soonToBeUpdatedProduct.imagesUrl;
-    if (prevProductImages.length + imagesPath.length > 5) {
-      imagesPath.forEach(async (image: any) => {
-        await fs.unlinkSync(path.join(__dirname, '../', image));
-      });
-      return res.status(400).json({
+    if (prevProductImages.length + images.length > 5) {
+      res.status(400).json({
         message:
           'You are not allowed to upload more than 5 images per product.',
       });
+      return;
     }
+
+    // Resize images.
+    const resizedImages = await Promise.all(
+      images.map(async (image: any) => {
+        return await sharp(image.buffer)
+          .resize({
+            width: 50,
+            height: 50,
+            fit: 'contain',
+          })
+          .png()
+          .toBuffer();
+      })
+    );
+
+    // Upload the images to aws.
+    let imagesName: any[] = [];
+    await Promise.all(
+      resizedImages.map(async (image) => {
+        const imageName = generateRandomImageName();
+
+        const command = new PutObjectCommand({
+          Bucket: process.env.BUCKET_NAME,
+          Key: imageName,
+          Body: image,
+          ContentType: req.file?.mimetype,
+        });
+
+        // Get the image that has been uploaded.
+        await s3.send(command);
+
+        // Insert the image name in the imagesName array.
+        imagesName.push(imageName);
+      })
+    );
 
     // Update the database.
     const updatedProduct = await prisma.product.update({
@@ -337,12 +479,26 @@ const uploadImages = async (req: Request, res: Response) => {
         id,
       },
       data: {
-        imagesUrl: [...prevProductImages, ...imagesPath],
+        imagesUrl: [...prevProductImages, ...imagesName],
       },
     });
 
-    // Send back a positive response containing the images urls.
-    res.status(200).json(updatedProduct.imagesUrl);
+    // Send back a positive response containing generated images urls.
+    const productImageUrls = await Promise.all(
+      updatedProduct.imagesUrl.map(async (image) => {
+        //Generate a url for the image
+        const getUrlCommand = new GetObjectCommand({
+          Bucket: process.env.BUCKET_NAME,
+          Key: `${image}`,
+        });
+        const url = await getSignedUrl(s3, getUrlCommand, {
+          expiresIn: 3600,
+        });
+
+        return `${image} ${url}`;
+      })
+    );
+    res.status(200).json(productImageUrls);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -372,14 +528,25 @@ const deleteImage = async (req: Request, res: Response) => {
         .json({ message: 'You are not allowed to delete this image.' });
     }
 
-    // Delete the product from the file system.
-    await fs.unlinkSync(path.join(__dirname, '../', image));
+    // Check if the image to be deleted exists
+    if (!product.imagesUrl.includes(image)) {
+      return res.status(400).json({
+        message: 'The image you are trying to delete does not exist.',
+      });
+    }
+
+    // Delete image from aws s3
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.BUCKET_NAME,
+      Key: `${image}`,
+    });
+    await s3.send(command);
 
     // Delete the product image link from the database.
     const newProductsArray = product.imagesUrl.filter(
       (item: any) => item !== image
     );
-    const updatedProduct = await prisma.product.update({
+    await prisma.product.update({
       where: {
         id,
       },
@@ -389,7 +556,9 @@ const deleteImage = async (req: Request, res: Response) => {
     });
 
     // Send back a positive response
-    res.status(200).json(updatedProduct.imagesUrl);
+    return res
+      .status(200)
+      .json({ message: 'Product image delete successfully.' });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -414,9 +583,16 @@ const adminDeleteProduct = async (req: Request, res: Response) => {
 
     // Delete images from file system if there is.
     if (deletedProduct.imagesUrl.length > 0) {
-      deletedProduct.imagesUrl.map(async (image) => {
-        await fs.unlinkSync(path.join(__dirname, '../', image));
-      });
+      await Promise.all(
+        deletedProduct.imagesUrl.map(async (image) => {
+          // Delete image from aws s3
+          const command = new DeleteObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: `${image}`,
+          });
+          await s3.send(command);
+        })
+      );
     }
 
     // Send back positive response.

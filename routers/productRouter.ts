@@ -14,16 +14,20 @@ const {
   adminDeleteProduct,
 } = require('../controllers/productController');
 
+// Multer
+import multer from 'multer';
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 // ADDITIONAL IMPORTS.
 const auth = require('../middlewares/auth');
-const { uploadProductImages } = require('../utiles/upload');
 
 // CREATE.
 router.post('/', auth, createProduct);
 router.post(
   '/images/:id',
   auth,
-  uploadProductImages.array('images'),
+  upload.array('images'),
   uploadImages,
   (error: any, req: Request, res: Response, next: NextFunction) => {
     res.status(400).json({ message: error.message });

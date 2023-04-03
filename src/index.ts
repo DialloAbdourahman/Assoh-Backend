@@ -1,3 +1,4 @@
+require('dotenv').config();
 const app = require('./app');
 import { createServer } from 'http';
 import { Server } from 'socket.io';

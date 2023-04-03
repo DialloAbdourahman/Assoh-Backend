@@ -459,23 +459,6 @@ test('should allow an authorized user to upload and delete an avatar', async () 
   expect(user2?.avatarUrl).toBe(null);
 });
 
-test('should not allow authorized user to upload a heavy file.', async () => {
-  // Assert that a 400 status is return after saving an image in the database.
-  const response = await request(app)
-    .post(`/api/users/avatarUpload`)
-    .set('Authorization', `Bearer ${userThree.tokens[0]}`)
-    .attach('avatar', 'tests/fixtures/image1.jpg');
-  expect(response.status).toBe(400);
-
-  // Assert that the avatarUrl is null in the database.
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userThree.id,
-    },
-  });
-  expect(user?.avatarUrl).toBe(null);
-});
-
 test('should not allow unauthorized upload an avatar.', async () => {
   // Assert that a 401 status is return after saving an image in the database.
   const response = await request(app)

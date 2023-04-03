@@ -18,9 +18,13 @@ const {
   sellerUpdate,
 } = require('../controllers/userController');
 
+// Multer
+import multer from 'multer';
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 // ADDITIONAL IMPORTS.
 const auth = require('../middlewares/auth');
-const { uploadAvatar } = require('../utiles/upload');
 
 // CREATE.
 router.post('/', createUser);
@@ -30,7 +34,7 @@ router.post('/adminTransform/:id', auth, adminTransform);
 router.post(
   '/avatarUpload',
   auth,
-  uploadAvatar.single('avatar'),
+  upload.single('avatar'),
   avatarUpload,
   (error: any, req: Request, res: Response, next: NextFunction) => {
     res.status(400).json({ message: error.message });

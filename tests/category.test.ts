@@ -66,17 +66,6 @@ test('should any user to see all categories', async () => {
   expect(response.body[0].name).toBe(categoryOne.name);
 });
 
-test('should any user to see a category', async () => {
-  // Assert that a 200 status code
-  const response = await request(app)
-    .get(`/api/categories/${categoryOne.id}`)
-    .send();
-  expect(response.status).toBe(200);
-
-  // Assert that the category matches the one existing in the database.
-  expect(response.body.name).toBe(categoryOne.name);
-});
-
 test('should allow an admin to update a category.', async () => {
   // Assert that a 200 status code
   const response = await request(app)
@@ -130,4 +119,24 @@ test('should not allow an unauthenticated user to delete a category.', async () 
     .delete(`/api/categories/${categoryTwo.id}`)
     .send();
   expect(response.status).toBe(401);
+});
+
+test('should allow and admin to upload a category image and delete it.', async () => {
+  // jest.setTimeout(10000)
+
+  // Assert that a 200 status code
+  const response = await request(app)
+    .post(`/api/categories/uploadImage/${categoryOne.id}`)
+    .set('Authorization', `Bearer ${userOne.tokens[0]}`)
+    .attach('image', 'tests/fixtures/image2.jpg');
+  expect(response.status).toBe(200);
+
+  // Assert that the imageUrl is not null
+  expect(response.body.updatedCategory.imageUrl).not.toBe(null);
+
+  // Assert that a 200 status code is returned after deleting an image.
+  const response2 = await request(app)
+    .delete(`/api/categories/deleteImage/${categoryOne.id}`)
+    .set('Authorization', `Bearer ${userOne.tokens[0]}`);
+  expect(response2.status).toBe(200);
 });
