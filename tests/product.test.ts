@@ -295,9 +295,21 @@ test('should not allow a non admin to use the admin route in order to delete a p
 });
 
 test('should not allow an unauthenticated user to use the admin route in order to delete a product', async () => {
-  // Assert that a 400 status code is returned after deleting a product
+  // Assert that a 401 status code is returned after deleting a product
   const response = await request(app)
     .delete(`/api/products/adminDeleteProduct/${productOne.id}`)
     .send();
   expect(response.status).toBe(401);
+});
+
+test('Search a product', async () => {
+  // Assert that a 200 status code is returned after searching for a product
+  const response = await request(app)
+    .get(`/api/products/searchProduct`)
+    .query({ name: 'full' })
+    .send();
+  expect(response.status).toBe(200);
+
+  // Expect that the searched product matches
+  expect(response.body[0].id).toBe(productOne.id);
 });

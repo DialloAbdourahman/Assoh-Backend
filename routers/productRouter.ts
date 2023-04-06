@@ -12,6 +12,7 @@ const {
   uploadImages,
   deleteImage,
   adminDeleteProduct,
+  searchProduct,
 } = require('../controllers/productController');
 
 // Multer
@@ -37,6 +38,7 @@ router.post(
 // READ.
 router.get('/', seeAllProducts);
 router.get('/myProducts', auth, seeAllMyProducts);
+router.get('/searchProduct', searchProduct);
 router.get('/:id', seeProduct);
 
 // UPDATE.

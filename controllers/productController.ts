@@ -254,8 +254,38 @@ const seeAllProducts = async (req: Request, res: Response) => {
       })
     );
 
-    // Send back a posite response with all the products.
+    // Send back a positive response with all the products.
     res.status(200).json(productsWithImagesUrls);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const searchProduct = async (req: Request, res: Response) => {
+  try {
+    // Get the name from the request query.
+    let name: string = String(req.query.name);
+
+    // Get the products from the database given the category or not.
+    let products = await prisma.product.findMany({
+      where: {
+        name: {
+          contains: name,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    // Send back a posite response with all the products.
+    res.status(200).json(products);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -612,4 +642,5 @@ module.exports = {
   uploadImages,
   deleteImage,
   adminDeleteProduct,
+  searchProduct,
 };
