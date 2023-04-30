@@ -650,6 +650,7 @@ const getProfile = async (req: Request, res: Response) => {
     // Sanitizing data
     user.password = undefined;
     user.tokens = undefined;
+    user.id = undefined;
 
     // Check if user has an avatar to generate a url for it.
     if (user.avatarUrl) {

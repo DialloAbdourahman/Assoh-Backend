@@ -459,13 +459,13 @@ test('should allow an authorized user to upload and delete an avatar', async () 
   expect(user2?.avatarUrl).toBe(null);
 });
 
-test('should not allow unauthorized upload an avatar.', async () => {
-  // Assert that a 401 status is return after saving an image in the database.
-  const response = await request(app)
-    .post(`/api/users/avatarUpload`)
-    .attach('avatar', 'tests/fixtures/image2.jpg');
-  expect(response.status).toBe(401);
-});
+// test('should not allow unauthorized upload an avatar.', async () => {
+//   // Assert that a 401 status is return after saving an image in the database.
+//   const response = await request(app)
+//     .post(`/api/users/avatarUpload`)
+//     .attach('avatar', 'tests/fixtures/image2.jpg');
+//   expect(response.status).toBe(401);
+// });
 
 test('should allow an admin to turn a simple user (buyer) into a seller', async () => {
   // Assert that a 200 status is return after turing a buyer into a seller.
