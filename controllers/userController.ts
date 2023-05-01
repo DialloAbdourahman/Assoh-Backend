@@ -186,7 +186,7 @@ const avatarUpload = async (req: Request, res: Response) => {
     await s3.send(command);
 
     // Update the data in the database.
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: {
         id: req.user.id,
       },
@@ -204,7 +204,6 @@ const avatarUpload = async (req: Request, res: Response) => {
 
     // Send back a successful response with the image url response.
     res.status(200).json({
-      updatedUser,
       url,
     });
   } catch (error) {
