@@ -118,5 +118,3 @@ model Message {
   text           String
   createdAt      DateTime     @default(now())
 }
-
-// Create a get profile route for users.
