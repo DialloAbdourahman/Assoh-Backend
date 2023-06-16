@@ -1,23 +1,23 @@
-import express, { NextFunction, Request, Response } from 'express';
-const router = express.Router();
+// import express, { NextFunction, Request, Response } from 'express';
+// const router = express.Router();
 
-// IMPORTING ALL THE CONTROLLERS.
-const {
-  create,
-  seeAllMessagesOfAConversation,
-} = require('../controllers/messageController');
+// // IMPORTING ALL THE CONTROLLERS.
+// const {
+//   create,
+//   seeAllMessagesOfAConversation,
+// } = require('../controllers/messageController');
 
-// ADDITIONAL IMPORTS.
-const auth = require('../middlewares/auth');
+// // ADDITIONAL IMPORTS.
+// const auth = require('../middlewares/auth');
 
-// CREATE.
-router.post('/', auth, create);
+// // CREATE.
+// router.post('/', auth, create);
 
-// READ.
-router.get('/:id', auth, seeAllMessagesOfAConversation);
+// // READ.
+// router.get('/:id', auth, seeAllMessagesOfAConversation);
 
-// UPDATE.
+// // UPDATE.
 
-// DELETE.
+// // DELETE.
 
-module.exports = router;
+// module.exports = router;

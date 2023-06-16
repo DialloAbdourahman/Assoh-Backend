@@ -7,41 +7,69 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                 String          @id @default(uuid())
-  name               String
-  email              String          @unique
-  password           String
-  country            String?
-  region             String?
-  address            String?
-  avatarUrl          String?
-  phoneNumber        String?
-  tokens             String[]
-  role               Role            @relation(fields: [roleName], references: [name])
-  roleName           String          @default("buyer")
-  sellerInfo         SellerInfo?
-  productReviews     ProductReview[]
-  sellerReports      sellerReport[]
-  orders             Order[]
-  sellerConversation Conversation[]  @relation("seller")
-  buyerConversation  Conversation[]  @relation("buyer")
-  sentMessages       Message[]
+model Admin {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  password       String
+  country        String?
+  region         String?
+  address        String?
+  avatarUrl      String?
+  phoneNumber    String?
+  token          String?
+  role           Role     @relation(fields: [roleName], references: [name])
+  roleName       String   @default("admin")
+  sellersCreated Seller[]
+}
+
+model Seller {
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  password        String
+  country         String?
+  region          String?
+  address         String?
+  avatarUrl       String?
+  phoneNumber     String?
+  token           String?
+  role            Role           @relation(fields: [roleName], references: [name])
+  roleName        String         @default("seller")
+  admin           Admin          @relation(fields: [creator], references: [id])
+  creator         String
+  conversations   Conversation[]
+  sentMessages    Message[]
+  myProducts      Product[]
+  recievedReports sellerReport[]
+}
+
+model Customer {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  country        String?
+  region         String?
+  address        String?
+  avatarUrl      String?
+  phoneNumber    String?
+  token          String?
+  role           Role            @relation(fields: [roleName], references: [name])
+  roleName       String          @default("customer")
+  productReviews ProductReview[]
+  sellerReports  sellerReport[]
+  orders         Order[]
+  conversations  Conversation[]
+  sentMessages   Message[]
 }
 
 model Role {
-  name        String  @id
+  name        String     @id
   description String?
-  users       User[]
-}
-
-model SellerInfo {
-  user                     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId                   String         @id
-  shippingCountries        String[]
-  shippingRegionsAndPrices Json[] // for example {name:"yaounde", shippingPrice:2000}.
-  myProducts               Product[]
-  recievedReports          sellerReport[]
+  sellers     Seller[]
+  customers   Customer[]
+  admins      Admin[]
 }
 
 model Category {
@@ -64,57 +92,61 @@ model Product {
   sizes       String[]
   category    Category        @relation(fields: [categoryId], references: [id])
   categoryId  String
-  seller      SellerInfo      @relation(fields: [sellerId], references: [userId], onDelete: Cascade)
+  seller      Seller          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId    String
   reviews     ProductReview[]
   orders      Order[]
 }
 
 model ProductReview {
-  id        String  @id @default(uuid())
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
-  rating    Float
-  comment   String?
+  id         String   @id @default(uuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  rating     Float
+  comment    String?
 }
 
 model sellerReport {
-  id            String     @id @default(uuid())
-  reporter      User       @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  reporterId    String
-  seller        SellerInfo @relation(fields: [sellerId], references: [userId], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId    String
+  seller        Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId      String
   reportMessage String
 }
 
 model Order {
-  id        String   @id @default(uuid())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  quantity  Int      @default(1)
-  orderDate DateTime @default(now())
+  id         String   @id @default(uuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  quantity   Int      @default(1)
+  orderDate  DateTime @default(now())
 }
 
 model Conversation {
-  id        String    @id @default(uuid())
-  seller    User      @relation(fields: [sellerId], references: [id], name: "seller", onDelete: Cascade)
-  sellerId  String
-  buyer     User      @relation(fields: [buyerId], references: [id], name: "buyer", onDelete: Cascade)
-  buyerId   String
-  createdAt DateTime  @default(now())
-  messages  Message[]
+  id         String    @id @default(uuid())
+  seller     Seller?   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId   String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String?
+  createdAt  DateTime  @default(now())
+  messages   Message[]
 }
 
 model Message {
   id             String       @id @default(uuid())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId String
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  senderId       String
+  senderSeller   Seller?      @relation(fields: [seller], references: [id], onDelete: Cascade)
+  seller         String?
+  senderCustomer Customer?    @relation(fields: [customer], references: [id], onDelete: Cascade)
+  customer       String?
   text           String
   createdAt      DateTime     @default(now())
 }
+
+// npx prisma migrate dev --name init 

@@ -1,19 +1,19 @@
-import express, { NextFunction, Request, Response } from 'express';
-const router = express.Router();
+// import express, { NextFunction, Request, Response } from 'express';
+// const router = express.Router();
 
-// IMPORTING ALL THE CONTROLLERS.
-const { createOrder } = require('../controllers/orderController');
+// // IMPORTING ALL THE CONTROLLERS.
+// const { createOrder } = require('../controllers/orderController');
 
-// ADDITIONAL IMPORTS.
-const auth = require('../middlewares/auth');
+// // ADDITIONAL IMPORTS.
+// const auth = require('../middlewares/auth');
 
-// CREATE.
-router.post('/', auth, createOrder);
+// // CREATE.
+// router.post('/', auth, createOrder);
 
-// READ.
+// // READ.
 
-// UPDATE.
+// // UPDATE.
 
-// DELETE.
+// // DELETE.
 
-module.exports = router;
+// module.exports = router;
