@@ -12,6 +12,11 @@ const {
   updateAccount,
   getProfile,
   createProduct,
+  deleteProduct,
+  uploadProductImages,
+  deleteProductImage,
+  updateProduct,
+  seeAllMyProducts,
 } = require('../controllers/sellerController');
 
 // Multer
@@ -36,15 +41,28 @@ router.post(
   }
 );
 router.post('/createProduct', auth, createProduct);
+router.post(
+  '/uploadProductImages/:id',
+  auth,
+  upload.array('images'),
+  uploadProductImages,
+  (error: any, req: Request, res: Response, next: NextFunction) => {
+    res.status(400).json({ message: error.message });
+  }
+);
 
 // READ.
 router.get('/profile', auth, getProfile);
+router.get('/myProducts', auth, seeAllMyProducts);
 
 // UPDATE.
 router.patch('/', auth, updateAccount);
+router.patch('/updateProduct/:id', auth, updateProduct);
 
 // DELETE.
 router.delete('/', auth, deleteAccount);
 router.delete('/deleteAvatar', auth, deleteAvatar);
+router.delete('/deleteProduct/:id', auth, deleteProduct);
+router.delete('/deleteProductImage', auth, deleteProductImage);
 
 module.exports = router;

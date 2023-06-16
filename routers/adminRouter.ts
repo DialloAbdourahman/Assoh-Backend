@@ -19,6 +19,7 @@ const {
   getProfile,
   searchAdmins,
   deleteCustomer,
+  deleteProduct,
 } = require('../controllers/adminController');
 
 // Multer
@@ -60,5 +61,6 @@ router.delete('/', auth, deleteAccount);
 router.delete('/deleteAvatar', auth, deleteAvatar);
 router.delete('/deleteSeller/:id', auth, deleteSeller);
 router.delete('/deleteCustomer/:id', auth, deleteCustomer);
+router.delete('/deleteProduct/:id', auth, deleteProduct);
 
 module.exports = router;

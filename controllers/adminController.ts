@@ -707,6 +707,49 @@ const getProfile = async (req: Request, res: Response) => {
   }
 };
 
+const deleteProduct = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the product.
+    const { id } = req.params;
+
+    // Check if the product to be deleted exists.
+    const toBeDeletedProduct = await prisma.product.findUnique({
+      where: { id },
+    });
+    if (!toBeDeletedProduct) {
+      return res.status(400).json({
+        message: 'Sorry, the product you are trying to delete does not exist.',
+      });
+    }
+
+    // Delete product from database.
+    const deletedProduct = await prisma.product.delete({
+      where: {
+        id,
+      },
+    });
+
+    // Delete images from aws if there is.
+    if (deletedProduct.imagesUrl.length > 0) {
+      await Promise.all(
+        deletedProduct.imagesUrl.map(async (image) => {
+          // Delete image from aws s3
+          const command = new DeleteObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: `${image}`,
+          });
+          await s3.send(command);
+        })
+      );
+    }
+
+    // Send back positive response.
+    res.status(200).json({ message: 'Product deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createAdmin,
   login,
@@ -724,4 +767,5 @@ module.exports = {
   searchAdmins,
   createSeller,
   deleteCustomer,
+  deleteProduct,
 };

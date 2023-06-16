@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 
 // Routers import.
 // const userRouter = require('../routers/userRouter');
-// const productRouter = require('../routers/productRouter');
+const productRouter = require('../routers/productRouter');
 // const categoryRouter = require('../routers/categoryRouter');
 // const productReviewRouter = require('../routers/productReviewRouter');
 // const sellerReportRouter = require('../routers/sellerReportRouter');
@@ -41,8 +41,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // Routes to routers mapping.
-// app.use('/api/users', userRouter);
-// app.use('/api/products', productRouter);
+app.use('/api/products', productRouter);
 // app.use('/api/categories', categoryRouter);
 // app.use('/api/productReviews', productReviewRouter);
 // app.use('/api/sellerReports', sellerReportRouter);

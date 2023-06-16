@@ -24,24 +24,26 @@ model Admin {
 }
 
 model Seller {
-  id              String         @id @default(uuid())
-  name            String
-  email           String         @unique
-  password        String
-  country         String?
-  region          String?
-  address         String?
-  avatarUrl       String?
-  phoneNumber     String?
-  token           String?
-  role            Role           @relation(fields: [roleName], references: [name])
-  roleName        String         @default("seller")
-  admin           Admin          @relation(fields: [creator], references: [id])
-  creator         String
-  conversations   Conversation[]
-  sentMessages    Message[]
-  myProducts      Product[]
-  recievedReports sellerReport[]
+  id                       String         @id @default(uuid())
+  name                     String
+  email                    String         @unique
+  password                 String
+  country                  String?
+  region                   String?
+  address                  String?
+  avatarUrl                String?
+  phoneNumber              String?
+  token                    String?
+  role                     Role           @relation(fields: [roleName], references: [name])
+  roleName                 String         @default("seller")
+  admin                    Admin          @relation(fields: [creator], references: [id])
+  creator                  String
+  shippingCountries        String[]
+  shippingRegionsAndPrices Json[] // for example {"name":"yaounde", "shippingPrice":2000}.
+  conversations            Conversation[]
+  sentMessages             Message[]
+  myProducts               Product[]
+  recievedReports          sellerReport[]
 }
 
 model Customer {
