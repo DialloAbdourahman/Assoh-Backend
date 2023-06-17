@@ -20,7 +20,6 @@
 // const auth = require('../middlewares/auth');
 
 // // CREATE.
-// router.post('/', auth, createCategory);
 // router.post(
 //   '/uploadImage/:id',
 //   auth,

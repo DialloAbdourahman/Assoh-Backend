@@ -20,6 +20,8 @@ const {
   searchAdmins,
   deleteCustomer,
   deleteProduct,
+  createCategory,
+  deleteCategory,
 } = require('../controllers/adminController');
 
 // Multer
@@ -45,6 +47,7 @@ router.post(
     res.status(400).json({ message: error.message });
   }
 );
+// router.post('/createCategory', auth, createCategory);
 
 // // READ.
 router.get('/profile', auth, getProfile);
@@ -62,5 +65,6 @@ router.delete('/deleteAvatar', auth, deleteAvatar);
 router.delete('/deleteSeller/:id', auth, deleteSeller);
 router.delete('/deleteCustomer/:id', auth, deleteCustomer);
 router.delete('/deleteProduct/:id', auth, deleteProduct);
+// router.delete('/deleteCategory/:id', auth, deleteCategory);
 
 module.exports = router;
