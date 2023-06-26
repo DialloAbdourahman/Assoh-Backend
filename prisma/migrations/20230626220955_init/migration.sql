@@ -9,7 +9,7 @@ CREATE TABLE "Admin" (
     "address" TEXT,
     "avatarUrl" TEXT,
     "phoneNumber" TEXT,
-    "tokens" TEXT[],
+    "token" TEXT,
     "roleName" TEXT NOT NULL DEFAULT 'admin',
 
     CONSTRAINT "Admin_pkey" PRIMARY KEY ("id")
@@ -26,8 +26,11 @@ CREATE TABLE "Seller" (
     "address" TEXT,
     "avatarUrl" TEXT,
     "phoneNumber" TEXT,
-    "tokens" TEXT[],
+    "token" TEXT,
     "roleName" TEXT NOT NULL DEFAULT 'seller',
+    "creator" TEXT NOT NULL,
+    "shippingCountries" TEXT[],
+    "shippingRegionsAndPrices" JSONB[],
 
     CONSTRAINT "Seller_pkey" PRIMARY KEY ("id")
 );
@@ -43,7 +46,7 @@ CREATE TABLE "Customer" (
     "address" TEXT,
     "avatarUrl" TEXT,
     "phoneNumber" TEXT,
-    "tokens" TEXT[],
+    "token" TEXT,
     "roleName" TEXT NOT NULL DEFAULT 'customer',
 
     CONSTRAINT "Customer_pkey" PRIMARY KEY ("id")
@@ -155,6 +158,9 @@ ALTER TABLE "Admin" ADD CONSTRAINT "Admin_roleName_fkey" FOREIGN KEY ("roleName"
 
 -- AddForeignKey
 ALTER TABLE "Seller" ADD CONSTRAINT "Seller_roleName_fkey" FOREIGN KEY ("roleName") REFERENCES "Role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Seller" ADD CONSTRAINT "Seller_creator_fkey" FOREIGN KEY ("creator") REFERENCES "Admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Customer" ADD CONSTRAINT "Customer_roleName_fkey" FOREIGN KEY ("roleName") REFERENCES "Role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
