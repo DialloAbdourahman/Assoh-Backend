@@ -856,8 +856,18 @@ const uploadCategoryImage = async (req: Request, res: Response) => {
     // Getting the category id
     const { id } = req.params;
 
+    // Check if an image was provided.
+    if (!req.file?.buffer) {
+      return res.status(400).json({ message: 'Please, provide an image.' });
+    }
+
     // Get the category
     const category = await prisma.category.findUnique({ where: { id } });
+
+    // Check if the category way found
+    if (!category) {
+      return res.status(400).json({ message: 'No category found.' });
+    }
 
     // Generate a random image name.
     let randomImageName;
@@ -920,6 +930,16 @@ const deleteCategoryImage = async (req: Request, res: Response) => {
     // Get the category
     const category = await prisma.category.findUnique({ where: { id } });
 
+    // Check if the category way found
+    if (!category) {
+      return res.status(400).json({ message: 'No category found.' });
+    }
+
+    // Check if the category doesn't have an image
+    if (category.imageUrl === null) {
+      return res.status(400).json({ message: 'No image to delete.' });
+    }
+
     // Delete image from aws s3
     const command = new DeleteObjectCommand({
       Bucket: process.env.BUCKET_NAME,
@@ -962,4 +982,9 @@ module.exports = {
   createSeller,
   deleteCustomer,
   deleteProduct,
+  createCategory,
+  deleteCategory,
+  updateCategory,
+  uploadCategoryImage,
+  deleteCategoryImage,
 };

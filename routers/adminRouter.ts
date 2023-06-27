@@ -22,6 +22,9 @@ const {
   deleteProduct,
   createCategory,
   deleteCategory,
+  updateCategory,
+  uploadCategoryImage,
+  deleteCategoryImage,
 } = require('../controllers/adminController');
 
 // Multer
@@ -47,7 +50,16 @@ router.post(
     res.status(400).json({ message: error.message });
   }
 );
-// router.post('/createCategory', auth, createCategory);
+router.post('/createCategory', auth, createCategory);
+router.post(
+  '/uploadCategoryImage/:id',
+  auth,
+  upload.single('image'),
+  uploadCategoryImage,
+  (error: any, req: Request, res: Response, next: NextFunction) => {
+    res.status(400).json({ message: error.message });
+  }
+);
 
 // // READ.
 router.get('/profile', auth, getProfile);
@@ -58,6 +70,7 @@ router.get('/admins', auth, searchAdmins);
 
 // // UPDATE.
 router.patch('/', auth, updateAccount);
+router.patch('/updateCategory/:id', auth, updateCategory);
 
 // // DELETE.
 router.delete('/', auth, deleteAccount);
@@ -65,6 +78,7 @@ router.delete('/deleteAvatar', auth, deleteAvatar);
 router.delete('/deleteSeller/:id', auth, deleteSeller);
 router.delete('/deleteCustomer/:id', auth, deleteCustomer);
 router.delete('/deleteProduct/:id', auth, deleteProduct);
-// router.delete('/deleteCategory/:id', auth, deleteCategory);
+router.delete('/deleteCategory/:id', auth, deleteCategory);
+router.delete('/deleteCategoryImage/:id', auth, deleteCategoryImage);
 
 module.exports = router;
