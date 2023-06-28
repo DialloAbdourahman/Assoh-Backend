@@ -436,6 +436,118 @@ const getProfile = async (req: Request, res: Response) => {
   }
 };
 
+const reportSeller = async (req: Request, res: Response) => {
+  try {
+    // Getting all the data needed.
+    const { sellerId, message } = req.body;
+
+    // Check if the sellerId and the message is provided.
+    if (!sellerId || !message) {
+      return res
+        .status(400)
+        .json({ message: 'Please enter all the information needed.' });
+    }
+
+    // Create the report in the database
+    await prisma.sellerReport.create({
+      data: {
+        customerId: req.user.id,
+        sellerId,
+        reportMessage: message,
+      },
+    });
+
+    // Send a positive response to the user.
+    res.status(201).json({ message: 'Seller reported successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const deleteReport = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the report we wanna delete.
+    const { id } = req.params;
+
+    // Get the report.
+    const report = await prisma.sellerReport.findFirst({
+      where: {
+        id,
+        customerId: req.user.id,
+      },
+    });
+
+    // Check if the report exist.
+    if (!report) {
+      return res
+        .status(400)
+        .json({ message: 'You are not allowed to delete this report.' });
+    }
+
+    // Delete report from db.
+    await prisma.sellerReport.delete({
+      where: {
+        id,
+      },
+    });
+
+    // Send a positive response back to the user
+    res.status(200).json({ message: 'Report has been deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const updateSellerReport = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the report and the data.
+    const { id } = req.params;
+
+    // Get the report.
+    const report = await prisma.sellerReport.findFirst({
+      where: {
+        id,
+        customerId: req.user.id,
+      },
+    });
+
+    // Check if the report exist.
+    if (!report) {
+      return res
+        .status(400)
+        .json({ message: 'You are not allowed to delete this report.' });
+    }
+
+    // Get the enteries and create a valid enteries array
+    const enteries = Object.keys(req.body);
+    const allowedEntery = ['reportMessage'];
+
+    // Check if the enteries are valid
+    const isValidOperation = enteries.every((entery) => {
+      return allowedEntery.includes(entery);
+    });
+
+    // Send negative response if the enteries are not allowed.
+    if (!isValidOperation) {
+      res.status(400).send({ message: 'Invalid data' });
+      return;
+    }
+
+    // Update the data in the database.
+    await prisma.sellerReport.update({
+      where: {
+        id: report.id,
+      },
+      data: {
+        ...req.body,
+      },
+    });
+
+    // Send back positive response.
+    res.status(200).json({ message: 'Report has been updated successfully.' });
+  } catch (error) {}
+};
+
 module.exports = {
   createAccount,
   login,
@@ -446,4 +558,7 @@ module.exports = {
   deleteAccount,
   updateAccount,
   getProfile,
+  reportSeller,
+  deleteReport,
+  updateSellerReport,
 };

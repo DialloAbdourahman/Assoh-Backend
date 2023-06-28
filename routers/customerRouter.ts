@@ -12,6 +12,9 @@ const {
   deleteAccount,
   updateAccount,
   getProfile,
+  reportSeller,
+  deleteReport,
+  updateSellerReport,
 } = require('../controllers/customerController');
 
 // Multer
@@ -36,15 +39,18 @@ router.post(
     res.status(400).json({ message: error.message });
   }
 );
+router.post('/reportSeller', auth, reportSeller);
 
 // READ.
 router.get('/profile', auth, getProfile);
 
 // UPDATE.
 router.patch('/', auth, updateAccount);
+router.patch('/updateSellerReport/:id', auth, updateSellerReport);
 
 // DELETE.
 router.delete('/', auth, deleteAccount);
 router.delete('/deleteAvatar', auth, deleteAvatar);
+router.delete('/deleteSellerReport/:id', auth, deleteReport);
 
 module.exports = router;
