@@ -790,6 +790,59 @@ const seeAllMyProducts = async (req: Request, res: Response) => {
   }
 };
 
+const myConversations = async (req: Request, res: Response) => {
+  try {
+    // Get all the conversations from the database.
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        sellerId: req.user.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        seller: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+        customer: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+    // Send back a positive response containing all the conversations.
+    res.status(200).json(conversations);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const sendMessage = async (req: Request, res: Response) => {
+  try {
+    // Get the text message and the conversation ID from the request body.
+    const { text, conversationId } = req.body;
+
+    // Saving the message into the database.
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        text,
+        seller: req.user.id,
+      },
+    });
+
+    // Send back a positive response containing the message
+    res.status(201).json(message);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -805,4 +858,6 @@ module.exports = {
   deleteProductImage,
   updateProduct,
   seeAllMyProducts,
+  myConversations,
+  sendMessage,
 };

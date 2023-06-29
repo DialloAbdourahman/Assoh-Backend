@@ -17,7 +17,13 @@ const {
   deleteProductImage,
   updateProduct,
   seeAllMyProducts,
+  myConversations,
+  sendMessage,
 } = require('../controllers/sellerController');
+
+const {
+  seeAllMessagesOfAConversation,
+} = require('../controllers/customerController');
 
 // Multer
 import multer from 'multer';
@@ -50,10 +56,17 @@ router.post(
     res.status(400).json({ message: error.message });
   }
 );
+router.post('/sendMessage', auth, sendMessage);
 
 // READ.
 router.get('/profile', auth, getProfile);
 router.get('/myProducts', auth, seeAllMyProducts);
+router.get('/myConversations', auth, myConversations);
+router.get(
+  '/seeAllMessagesOfAConversation/:conversationId',
+  auth,
+  seeAllMessagesOfAConversation
+);
 
 // UPDATE.
 router.patch('/', auth, updateAccount);

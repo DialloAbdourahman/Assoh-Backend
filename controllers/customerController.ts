@@ -548,6 +548,318 @@ const updateSellerReport = async (req: Request, res: Response) => {
   } catch (error) {}
 };
 
+const reviewProduct = async (req: Request, res: Response) => {
+  try {
+    // Getting the required information from the request body.
+    const { rating, comment, productId } = req.body;
+
+    // Check if the rating is max five.
+    if (rating > 5) {
+      return res.status(400).json({ message: 'Rating must be less than 5.' });
+    }
+
+    if (!rating || !comment || !productId) {
+      return res
+        .status(400)
+        .json({ message: 'Please provide all information.' });
+    }
+
+    // Check if the customer already reviewed the product.
+    const review = await prisma.productReview.findFirst({
+      where: {
+        productId,
+        customerId: req.user.id,
+      },
+    });
+    if (review) {
+      return res.status(400).json({
+        message:
+          'Sorry, you have already reviewed this product before. Just update it.',
+      });
+    }
+
+    // Storing the review in the database.
+    const productReview = await prisma.productReview.create({
+      data: {
+        customerId: req.user.id,
+        productId,
+        rating,
+        comment,
+      },
+    });
+
+    // Send the review back to the user.
+    res
+      .status(201)
+      .json({ message: 'Review has been created.', productReview });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const deleteProductReview = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the review.
+    const { id } = req.params;
+
+    // Get the review.
+    const review = await prisma.productReview.findFirst({
+      where: {
+        id,
+        customerId: req.user.id,
+      },
+    });
+
+    // Check if the review exist.
+    if (!review) {
+      return res
+        .status(400)
+        .json({ message: 'You are not allowed to delete this review.' });
+    }
+
+    // Delete the review from db.
+    await prisma.productReview.delete({
+      where: {
+        id,
+      },
+    });
+
+    // Send a positive response back to the user
+    res.status(200).json({ message: 'Review has been deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const updateProductReview = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the report and the data.
+    const { id } = req.params;
+
+    // Check if the customer is trying to update the rating
+    if (req.body?.rating > 5) {
+      return res.status(400).json({ message: 'Rating must be less than 5.' });
+    }
+
+    // Get the review.
+    const review = await prisma.productReview.findFirst({
+      where: {
+        id,
+        customerId: req.user.id,
+      },
+    });
+
+    // Check if the review exist.
+    if (!review) {
+      return res
+        .status(400)
+        .json({ message: 'You are not allowed to delete this report.' });
+    }
+
+    // Get the enteries and create a valid enteries array
+    const enteries = Object.keys(req.body);
+    const allowedEntery = ['rating', 'comment'];
+
+    // Check if the enteries are valid
+    const isValidOperation = enteries.every((entery) => {
+      return allowedEntery.includes(entery);
+    });
+
+    // Send negative response if the enteries are not allowed.
+    if (!isValidOperation) {
+      res.status(400).send({ message: 'Invalid data' });
+      return;
+    }
+
+    // Update the data in the database.
+    await prisma.productReview.update({
+      where: {
+        id: review.id,
+      },
+      data: {
+        ...req.body,
+      },
+    });
+
+    // Send back positive response.
+    res.status(200).json({ message: 'Review has been updated successfully.' });
+  } catch (error) {}
+};
+
+const initiateConversation = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the seller
+    const { sellerId } = req.params;
+
+    // Make sure that the buyer has initiated a conversation with a seller.
+    const seller = await prisma.seller.findUnique({
+      where: {
+        id: sellerId,
+      },
+    });
+    if (!seller) {
+      return res.status(400).json({
+        message:
+          'The seller you wanna initiate a conversation with does not exist.',
+      });
+    }
+
+    // Check if the conversation exists already.
+    const conversationExists = await prisma.conversation.findFirst({
+      where: {
+        sellerId,
+        customerId: req.user.id,
+      },
+    });
+    if (conversationExists) {
+      return res.status(400).json({
+        message: 'A conversation exists already.',
+      });
+    }
+
+    // Storing in the database
+    const conversation = await prisma.conversation.create({
+      data: {
+        sellerId: sellerId,
+        customerId: req.user.id,
+      },
+      select: {
+        seller: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+        customer: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    // Map the avatar urls here for a better UI/UX.
+
+    // Return a positive response containing the conversation.
+    res.status(201).json(conversation);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const myConversations = async (req: Request, res: Response) => {
+  try {
+    // Get all the conversations from the database.
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        customerId: req.user.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        seller: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+        customer: {
+          select: {
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+    // Send back a positive response containing all the conversations.
+    res.status(200).json(conversations);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const getASpecificConversation = async (req: Request, res: Response) => {
+  try {
+    // Get the id of the seller
+    const { sellerId } = req.params;
+
+    // Get the conversation from the database.
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        customerId: req.user.id,
+        sellerId: sellerId,
+      },
+    });
+
+    if (conversation === null) {
+      return res
+        .status(400)
+        .json({ message: 'No conversation with seller exists.' });
+    }
+
+    // Send back a positive response containing the conversation.
+    res.status(200).json(conversation);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const sendMessage = async (req: Request, res: Response) => {
+  try {
+    // Get the text message and the conversation ID from the request body.
+    const { text, conversationId } = req.body;
+
+    // Saving the message into the database.
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        text,
+        customer: req.user.id,
+      },
+    });
+
+    // Send back a positive response containing the message
+    res.status(201).json(message);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
+const seeAllMessagesOfAConversation = async (req: Request, res: Response) => {
+  try {
+    // Get the conversation ID from the request params.
+    const { conversationId } = req.params;
+
+    // Check if the conversation exists
+    const conversation = await prisma.conversation.findUnique({
+      where: {
+        id: conversationId,
+      },
+    });
+    if (!conversation) {
+      return res
+        .status(400)
+        .send({ message: 'Sorry, conversation does not exist' });
+    }
+
+    // Get all the messages from the database.
+    const messages = await prisma.message.findMany({
+      where: {
+        conversationId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    res.status(200).json(messages);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createAccount,
   login,
@@ -561,4 +873,12 @@ module.exports = {
   reportSeller,
   deleteReport,
   updateSellerReport,
+  reviewProduct,
+  deleteProductReview,
+  updateProductReview,
+  initiateConversation,
+  myConversations,
+  getASpecificConversation,
+  sendMessage,
+  seeAllMessagesOfAConversation,
 };

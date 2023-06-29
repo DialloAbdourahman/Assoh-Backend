@@ -15,6 +15,14 @@ const {
   reportSeller,
   deleteReport,
   updateSellerReport,
+  reviewProduct,
+  deleteProductReview,
+  updateProductReview,
+  initiateConversation,
+  myConversations,
+  getASpecificConversation,
+  sendMessage,
+  seeAllMessagesOfAConversation,
 } = require('../controllers/customerController');
 
 // Multer
@@ -40,17 +48,33 @@ router.post(
   }
 );
 router.post('/reportSeller', auth, reportSeller);
+router.post('/reviewPrduct', auth, reviewProduct);
+router.post('/initiateConversation/:sellerId', auth, initiateConversation);
+router.post('/sendMessage', auth, sendMessage);
 
 // READ.
 router.get('/profile', auth, getProfile);
+router.get('/myConversations', auth, myConversations);
+router.get(
+  '/getASpecificConversation/:sellerId',
+  auth,
+  getASpecificConversation
+);
+router.get(
+  '/seeAllMessagesOfAConversation/:conversationId',
+  auth,
+  seeAllMessagesOfAConversation
+);
 
 // UPDATE.
 router.patch('/', auth, updateAccount);
 router.patch('/updateSellerReport/:id', auth, updateSellerReport);
+router.patch('/updateProductReview/:id', auth, updateProductReview);
 
 // DELETE.
 router.delete('/', auth, deleteAccount);
 router.delete('/deleteAvatar', auth, deleteAvatar);
 router.delete('/deleteSellerReport/:id', auth, deleteReport);
+router.delete('/deleteProductReview/:id', auth, deleteProductReview);
 
 module.exports = router;

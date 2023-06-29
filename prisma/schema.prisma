@@ -107,7 +107,7 @@ model ProductReview {
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId  String
   rating     Float
-  comment    String?
+  comment    String
 }
 
 model sellerReport {
@@ -117,6 +117,7 @@ model sellerReport {
   seller        Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   sellerId      String
   reportMessage String
+  date          DateTime @default(now())
 }
 
 model Order {
