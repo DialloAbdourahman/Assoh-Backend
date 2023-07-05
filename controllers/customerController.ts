@@ -212,6 +212,9 @@ const refreshToken = async (req: Request, res: Response) => {
 
     // Send the access token to the customer
     res.status(200).json({
+      name: customer.name,
+      email: customer.email,
+      role: customer.roleName,
       accessToken,
     });
   } catch (error) {

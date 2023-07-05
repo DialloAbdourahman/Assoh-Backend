@@ -8,13 +8,15 @@ const jwt = require('jsonwebtoken');
 
 const generateAccessToken = async (data: any, secrete: String) => {
   const token = jwt.sign({ data }, secrete, {
-    expiresIn: '1hr',
+    expiresIn: '15m',
   });
   return token;
 };
 
 const generateRefreshToken = async (data: any, secrete: string) => {
-  const token = jwt.sign({ data }, secrete);
+  const token = jwt.sign({ data }, secrete, {
+    expiresIn: '7d',
+  });
   return token;
 };
 

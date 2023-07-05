@@ -167,6 +167,9 @@ const refreshToken = async (req: Request, res: Response) => {
 
     // Send the access token to the seller
     res.status(200).json({
+      name: seller.name,
+      email: seller.email,
+      role: seller.roleName,
       accessToken,
     });
   } catch (error) {

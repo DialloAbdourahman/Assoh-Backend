@@ -220,6 +220,9 @@ const refreshToken = async (req: Request, res: Response) => {
 
     // Send the access token to the admin
     res.status(200).json({
+      name: admin.name,
+      email: admin.email,
+      role: admin.roleName,
       accessToken,
     });
   } catch (error) {
