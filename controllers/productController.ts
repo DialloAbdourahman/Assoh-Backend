@@ -83,6 +83,10 @@ const seeAllProducts = async (req: Request, res: Response) => {
     let name: string = String(req.query.name);
     let page: number = Number(req.query.page);
     let categoryId: string = String(req.query.categoryId);
+    let nameSort: any = String(req.query.nameSort);
+    let minPrice: number = Number(req.query.minPrice);
+    let maxPrice: number = Number(req.query.maxPrice);
+    let rating: number = Number(req.query.rating);
 
     // Configure the pages. Here, the first page will be 1.
     const itemPerPage = 10;
@@ -100,9 +104,20 @@ const seeAllProducts = async (req: Request, res: Response) => {
             mode: 'insensitive',
           },
           categoryId,
+          price: {
+            gte: minPrice,
+            lte: maxPrice,
+          },
+          reviews: {
+            some: {
+              rating: {
+                gte: rating,
+              },
+            },
+          },
         },
         orderBy: {
-          name: 'asc',
+          name: nameSort,
         },
       });
     } else {
@@ -114,9 +129,21 @@ const seeAllProducts = async (req: Request, res: Response) => {
             contains: name,
             mode: 'insensitive',
           },
+          price: {
+            gte: minPrice,
+            lte: maxPrice,
+          },
+
+          reviews: {
+            some: {
+              rating: {
+                gte: rating,
+              },
+            },
+          },
         },
         orderBy: {
-          name: 'asc',
+          name: nameSort,
         },
       });
     }

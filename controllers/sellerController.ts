@@ -532,8 +532,8 @@ const uploadProductImages = async (req: Request, res: Response) => {
       images.map(async (image: any) => {
         return await sharp(image.buffer)
           .resize({
-            width: 50,
-            height: 50,
+            width: 200,
+            height: 200,
             fit: 'contain',
           })
           .png()
