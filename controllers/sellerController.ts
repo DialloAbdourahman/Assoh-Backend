@@ -92,6 +92,7 @@ const login = async (req: Request, res: Response) => {
 
     // Send back response
     res.status(200).json({
+      id: seller.id,
       name: seller.name,
       email: seller.email,
       role: seller.roleName,
@@ -167,6 +168,7 @@ const refreshToken = async (req: Request, res: Response) => {
 
     // Send the access token to the seller
     res.status(200).json({
+      id: seller.id,
       name: seller.name,
       email: seller.email,
       role: seller.roleName,

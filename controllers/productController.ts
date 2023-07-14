@@ -41,9 +41,24 @@ const seeProduct = async (req: Request, res: Response) => {
             id: true,
             name: true,
             email: true,
+            shippingCountries: true,
+            shippingRegionsAndPrices: true,
           },
         },
-        reviews: true,
+        reviews: {
+          select: {
+            id: true,
+            comment: true,
+            rating: true,
+            productId: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -92,61 +107,40 @@ const seeAllProducts = async (req: Request, res: Response) => {
     const itemPerPage = 10;
     page = page - 1;
 
+    // Configuring the search conditionals
+    let conditionals: any = {
+      name: {
+        contains: name,
+        mode: 'insensitive',
+      },
+      price: {
+        gte: minPrice,
+        lte: maxPrice,
+      },
+    };
+    if (categoryId !== '') {
+      conditionals.categoryId = categoryId;
+    }
+    if (rating !== 0) {
+      conditionals.reviews = {
+        some: {
+          rating: {
+            gte: rating,
+          },
+        },
+      };
+    }
+
     // Get the products from the database given the category or not.
     let products;
-    if (req.query.categoryId) {
-      products = await prisma.product.findMany({
-        take: itemPerPage,
-        skip: itemPerPage * page,
-        where: {
-          name: {
-            contains: name,
-            mode: 'insensitive',
-          },
-          categoryId,
-          price: {
-            gte: minPrice,
-            lte: maxPrice,
-          },
-          reviews: {
-            some: {
-              rating: {
-                gte: rating,
-              },
-            },
-          },
-        },
-        orderBy: {
-          name: nameSort,
-        },
-      });
-    } else {
-      products = await prisma.product.findMany({
-        take: itemPerPage,
-        skip: itemPerPage * page,
-        where: {
-          name: {
-            contains: name,
-            mode: 'insensitive',
-          },
-          price: {
-            gte: minPrice,
-            lte: maxPrice,
-          },
-
-          reviews: {
-            some: {
-              rating: {
-                gte: rating,
-              },
-            },
-          },
-        },
-        orderBy: {
-          name: nameSort,
-        },
-      });
-    }
+    products = await prisma.product.findMany({
+      take: itemPerPage,
+      skip: itemPerPage * page,
+      where: conditionals,
+      orderBy: {
+        name: nameSort,
+      },
+    });
 
     // Generate the images urls
     const productsWithImagesUrls = await Promise.all(

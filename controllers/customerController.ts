@@ -137,6 +137,7 @@ const login = async (req: Request, res: Response) => {
 
     // Send back response
     res.status(200).json({
+      id: customer.id,
       name: customer.name,
       email: customer.email,
       role: customer.roleName,
@@ -212,6 +213,7 @@ const refreshToken = async (req: Request, res: Response) => {
 
     // Send the access token to the customer
     res.status(200).json({
+      id: customer.id,
       name: customer.name,
       email: customer.email,
       role: customer.roleName,
@@ -578,6 +580,7 @@ const reviewProduct = async (req: Request, res: Response) => {
       return res.status(400).json({
         message:
           'Sorry, you have already reviewed this product before. Just update it.',
+        review,
       });
     }
 
@@ -588,6 +591,18 @@ const reviewProduct = async (req: Request, res: Response) => {
         productId,
         rating,
         comment,
+      },
+      select: {
+        id: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        comment: true,
+        rating: true,
+        productId: true,
       },
     });
 
@@ -645,7 +660,7 @@ const updateProductReview = async (req: Request, res: Response) => {
     }
 
     // Get the review.
-    const review = await prisma.productReview.findFirst({
+    let review = await prisma.productReview.findFirst({
       where: {
         id,
         customerId: req.user.id,
@@ -656,7 +671,7 @@ const updateProductReview = async (req: Request, res: Response) => {
     if (!review) {
       return res
         .status(400)
-        .json({ message: 'You are not allowed to delete this report.' });
+        .json({ message: 'You are not allowed to update this review.' });
     }
 
     // Get the enteries and create a valid enteries array
@@ -675,17 +690,32 @@ const updateProductReview = async (req: Request, res: Response) => {
     }
 
     // Update the data in the database.
-    await prisma.productReview.update({
+    const updatedReview = await prisma.productReview.update({
       where: {
         id: review.id,
       },
       data: {
         ...req.body,
       },
+      select: {
+        id: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        comment: true,
+        rating: true,
+        productId: true,
+      },
     });
 
     // Send back positive response.
-    res.status(200).json({ message: 'Review has been updated successfully.' });
+    res.status(200).json({
+      message: 'Review has been updated successfully.',
+      review: updatedReview,
+    });
   } catch (error) {}
 };
 

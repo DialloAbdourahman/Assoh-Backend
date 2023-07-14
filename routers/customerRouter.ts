@@ -48,7 +48,7 @@ router.post(
   }
 );
 router.post('/reportSeller', auth, reportSeller);
-router.post('/reviewPrduct', auth, reviewProduct);
+router.post('/reviewProduct', auth, reviewProduct);
 router.post('/initiateConversation/:sellerId', auth, initiateConversation);
 router.post('/sendMessage', auth, sendMessage);
 
