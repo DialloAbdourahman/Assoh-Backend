@@ -848,6 +848,66 @@ const sendMessage = async (req: Request, res: Response) => {
   }
 };
 
+const seeSeller = async (req: Request, res: Response) => {
+  // Get the id of the seller
+  const { id } = req.params;
+
+  try {
+    // Getting the user from db.
+    let seller = await prisma.seller.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
+        address: true,
+        country: true,
+        region: true,
+        phoneNumber: true,
+        shippingCountries: true,
+        shippingRegionsAndPrices: true,
+        recievedReports: {
+          select: {
+            id: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            seller: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            reportMessage: true,
+          },
+        },
+      },
+    });
+
+    // Check if user has an avatar to generate a url for it.
+    if (seller?.avatarUrl) {
+      const getUrlCommand = new GetObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: seller?.avatarUrl,
+      });
+      const url = await getSignedUrl(s3, getUrlCommand, { expiresIn: 3600 });
+      seller.avatarUrl = `${seller?.avatarUrl} ${url}`;
+    }
+
+    // Return a positive response containing the data.
+    res.status(200).json(seller);
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -865,4 +925,5 @@ module.exports = {
   seeAllMyProducts,
   myConversations,
   sendMessage,
+  seeSeller,
 };

@@ -19,6 +19,7 @@ const {
   seeAllMyProducts,
   myConversations,
   sendMessage,
+  seeSeller,
 } = require('../controllers/sellerController');
 
 const {
@@ -60,6 +61,7 @@ router.post('/sendMessage', auth, sendMessage);
 
 // READ.
 router.get('/profile', auth, getProfile);
+router.get('/seeSeller/:id', seeSeller);
 router.get('/myProducts', auth, seeAllMyProducts);
 router.get('/myConversations', auth, myConversations);
 router.get(
