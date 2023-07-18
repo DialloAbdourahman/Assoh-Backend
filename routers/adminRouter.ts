@@ -25,6 +25,7 @@ const {
   updateCategory,
   uploadCategoryImage,
   deleteCategoryImage,
+  getStatistics,
 } = require('../controllers/adminController');
 
 // Multer
@@ -66,6 +67,7 @@ router.get('/profile', auth, getProfile);
 router.get('/sellers', searchSellers);
 router.get('/seller/:id', searchSeller);
 router.get('/customers', auth, searchCustomers);
+router.get('/statistics', auth, getStatistics);
 router.get('/admins', auth, searchAdmins);
 
 // // UPDATE.

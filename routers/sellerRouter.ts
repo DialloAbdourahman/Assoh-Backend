@@ -20,6 +20,7 @@ const {
   myConversations,
   sendMessage,
   seeSeller,
+  getStatistics,
 } = require('../controllers/sellerController');
 
 const {
@@ -69,6 +70,7 @@ router.get(
   auth,
   seeAllMessagesOfAConversation
 );
+router.get('/statistics', auth, getStatistics);
 
 // UPDATE.
 router.patch('/', auth, updateAccount);

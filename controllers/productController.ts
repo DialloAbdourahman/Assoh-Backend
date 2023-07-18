@@ -86,7 +86,7 @@ const seeProduct = async (req: Request, res: Response) => {
     );
 
     // Send back a positive response to the user.
-    res.status(200).json({ ...product, productImageUrls });
+    res.status(200).json({ ...product, imagesUrl: productImageUrls });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
   }
@@ -102,6 +102,7 @@ const seeAllProducts = async (req: Request, res: Response) => {
     let minPrice: number = Number(req.query.minPrice);
     let maxPrice: number = Number(req.query.maxPrice);
     let rating: number = Number(req.query.rating);
+    let sellerId: string = String(req.query.sellerId);
 
     // Configure the pages. Here, the first page will be 1.
     const itemPerPage = 10;
@@ -130,6 +131,9 @@ const seeAllProducts = async (req: Request, res: Response) => {
         },
       };
     }
+    if (sellerId !== '') {
+      conditionals.sellerId = sellerId;
+    }
 
     // Get the products from the database given the category or not.
     let products;
@@ -139,6 +143,16 @@ const seeAllProducts = async (req: Request, res: Response) => {
       where: conditionals,
       orderBy: {
         name: nameSort,
+      },
+      include: {
+        category: true,
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 

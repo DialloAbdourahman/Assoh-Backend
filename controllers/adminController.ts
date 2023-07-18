@@ -11,6 +11,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 const { s3 } = require('../utiles/s3client');
 import { Prisma, PrismaClient } from '@prisma/client';
+import { log } from 'console';
 const prisma: PrismaClient<
   Prisma.PrismaClientOptions,
   never,
@@ -268,12 +269,15 @@ const avatarUpload = async (req: Request, res: Response) => {
     await s3.send(command);
 
     // Update the data in the database.
-    await prisma.admin.update({
+    const avatar = await prisma.admin.update({
       where: {
         id: req.user.id,
       },
       data: {
         avatarUrl: randomImageName,
+      },
+      select: {
+        avatarUrl: true,
       },
     });
 
@@ -286,7 +290,7 @@ const avatarUpload = async (req: Request, res: Response) => {
 
     // Send back a successful response with the image url response.
     res.status(200).json({
-      url,
+      avatarUrl: `${avatar?.avatarUrl} ${url}`,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
@@ -692,6 +696,10 @@ const getProfile = async (req: Request, res: Response) => {
         name: true,
         role: true,
         avatarUrl: true,
+        country: true,
+        region: true,
+        address: true,
+        phoneNumber: true,
       },
     });
 
@@ -969,6 +977,21 @@ const deleteCategoryImage = async (req: Request, res: Response) => {
   }
 };
 
+const getStatistics = async (req: Request, res: Response) => {
+  try {
+    // Count the number of sellers, customers, products and seller reports.
+    const sellers = await prisma.seller.count();
+    const customers = await prisma.customer.count();
+    const products = await prisma.product.count();
+    const sellerReports = await prisma.sellerReport.count();
+
+    // Send a success message containing all the statistics
+    res.status(200).json({ sellers, customers, products, sellerReports });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   createAdmin,
   login,
@@ -992,4 +1015,5 @@ module.exports = {
   updateCategory,
   uploadCategoryImage,
   deleteCategoryImage,
+  getStatistics,
 };

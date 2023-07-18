@@ -260,12 +260,15 @@ const avatarUpload = async (req: Request, res: Response) => {
     await s3.send(command);
 
     // Update the data in the database.
-    await prisma.customer.update({
+    const avatar = await prisma.customer.update({
       where: {
         id: req.user.id,
       },
       data: {
         avatarUrl: randomImageName,
+      },
+      select: {
+        avatarUrl: true,
       },
     });
 
@@ -278,7 +281,7 @@ const avatarUpload = async (req: Request, res: Response) => {
 
     // Send back a successful response with the image url response.
     res.status(200).json({
-      url,
+      avatarUrl: `${avatar?.avatarUrl} ${url}`,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
@@ -421,6 +424,10 @@ const getProfile = async (req: Request, res: Response) => {
         name: true,
         role: true,
         avatarUrl: true,
+        country: true,
+        region: true,
+        address: true,
+        phoneNumber: true,
       },
     });
 

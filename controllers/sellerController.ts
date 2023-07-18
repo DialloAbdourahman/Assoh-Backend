@@ -215,12 +215,15 @@ const avatarUpload = async (req: Request, res: Response) => {
     await s3.send(command);
 
     // Update the data in the database.
-    await prisma.seller.update({
+    const avatar = await prisma.seller.update({
       where: {
         id: req.user.id,
       },
       data: {
         avatarUrl: randomImageName,
+      },
+      select: {
+        avatarUrl: true,
       },
     });
 
@@ -233,7 +236,7 @@ const avatarUpload = async (req: Request, res: Response) => {
 
     // Send back a successful response with the image url response.
     res.status(200).json({
-      url,
+      avatarUrl: `${avatar?.avatarUrl} ${url}`,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
@@ -376,6 +379,12 @@ const getProfile = async (req: Request, res: Response) => {
         name: true,
         role: true,
         avatarUrl: true,
+        country: true,
+        region: true,
+        address: true,
+        phoneNumber: true,
+        shippingCountries: true,
+        shippingRegionsAndPrices: true,
       },
     });
 
@@ -724,45 +733,53 @@ const seeAllMyProducts = async (req: Request, res: Response) => {
     let name: string = String(req.query.name);
     let page: number = Number(req.query.page);
     let categoryId: string = String(req.query.categoryId);
+    let nameSort: any = String(req.query.nameSort);
+    let minPrice: number = Number(req.query.minPrice);
+    let maxPrice: number = Number(req.query.maxPrice);
+    let rating: number = Number(req.query.rating);
 
     // Configure the pages. Here, the first page will be 1.
     const itemPerPage = 10;
     page = page - 1;
 
+    // Configuring the search conditionals
+    let conditionals: any = {
+      name: {
+        contains: name,
+        mode: 'insensitive',
+      },
+      price: {
+        gte: minPrice,
+        lte: maxPrice,
+      },
+      sellerId: req.user.id,
+    };
+    if (categoryId !== '') {
+      conditionals.categoryId = categoryId;
+    }
+    if (rating !== 0) {
+      conditionals.reviews = {
+        some: {
+          rating: {
+            gte: rating,
+          },
+        },
+      };
+    }
+
     // Get the products from the database given the category or not.
     let products;
-    if (req.query.categoryId) {
-      products = await prisma.product.findMany({
-        take: itemPerPage,
-        skip: itemPerPage * page,
-        where: {
-          name: {
-            contains: name,
-            mode: 'insensitive',
-          },
-          categoryId,
-          sellerId: req.user.id,
-        },
-        orderBy: {
-          name: 'asc',
-        },
-      });
-    } else {
-      products = await prisma.product.findMany({
-        take: itemPerPage,
-        skip: itemPerPage * page,
-        where: {
-          name: {
-            contains: name,
-            mode: 'insensitive',
-          },
-          sellerId: req.user.id,
-        },
-        orderBy: {
-          name: 'asc',
-        },
-      });
-    }
+    products = await prisma.product.findMany({
+      take: itemPerPage,
+      skip: itemPerPage * page,
+      where: conditionals,
+      orderBy: {
+        name: nameSort,
+      },
+      include: {
+        category: true,
+      },
+    });
 
     // Generate the images urls
     const productsWithImagesUrls = await Promise.all(
@@ -788,7 +805,7 @@ const seeAllMyProducts = async (req: Request, res: Response) => {
       })
     );
 
-    // Send back a posite response with all the products.
+    // Send back a positive response with all the products.
     res.status(200).json(productsWithImagesUrls);
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong.', error });
@@ -908,6 +925,40 @@ const seeSeller = async (req: Request, res: Response) => {
   }
 };
 
+const getStatistics = async (req: Request, res: Response) => {
+  try {
+    // Get the number of products.
+    const products = await prisma.product.count({
+      where: {
+        sellerId: req.user.id,
+      },
+    });
+
+    // Get the number of orders.
+    const orders = await prisma.order.count({
+      where: {
+        product: {
+          sellerId: req.user.id,
+        },
+      },
+    });
+
+    // Get the number of product reviews.
+    const productReviews = await prisma.productReview.count({
+      where: {
+        product: {
+          sellerId: req.user.id,
+        },
+      },
+    });
+
+    // Send back a positive response containing all the data.
+    res.status(200).json({ products, orders, productReviews });
+  } catch (error) {
+    return res.status(500).json({ message: 'Something went wrong.', error });
+  }
+};
+
 module.exports = {
   login,
   logout,
@@ -926,4 +977,5 @@ module.exports = {
   myConversations,
   sendMessage,
   seeSeller,
+  getStatistics,
 };
